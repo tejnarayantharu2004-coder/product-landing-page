@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  background: #fffdf7;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: #173326;
+  background:
+    radial-gradient(circle at top left, rgba(246, 195, 74, 0.18), transparent 32rem),
+    linear-gradient(180deg, #fffdf7 0%, #ffffff 40%, #fff8e8 100%);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.section-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.focus-ring {
+  @apply focus:outline-none focus:ring-4 focus:ring-braniva-gold/30;
+}
