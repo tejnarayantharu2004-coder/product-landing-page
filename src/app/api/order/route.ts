@@ -4,13 +4,25 @@ import { createOrderRecord, orderInputSchema } from "@/lib/order-schema";
 import { sendOrderEmails } from "@/lib/email";
 
 function originAllowed(request: NextRequest) {
-  const configured = process.env.FRONTEND_URL;
-  if (!configured) return true;
-
   const origin = request.headers.get("origin");
   if (!origin) return true;
 
-  return origin === configured;
+  const currentRequestOrigin = request.nextUrl.origin;
+  const configuredOrigins = [process.env.FRONTEND_URL, process.env.NEXT_PUBLIC_SITE_URL]
+    .flatMap((value) => (value ? value.split(",") : []))
+    .map((value) => value.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+
+  const allowedOrigins = new Set([
+    currentRequestOrigin.replace(/\/$/, ""),
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://branivaoils.tejnarayantharu.com.np",
+    "http://branivaoils.tejnarayantharu.com.np",
+    ...configuredOrigins
+  ]);
+
+  return allowedOrigins.has(origin.replace(/\/$/, ""));
 }
 
 export async function POST(request: NextRequest) {
