@@ -3,6 +3,8 @@ import { appendOrderToSheet } from "@/lib/google-sheets";
 import { createOrderRecord, orderInputSchema } from "@/lib/order-schema";
 import { sendOrderEmails } from "@/lib/email";
 
+export const maxDuration = 60;
+
 function originAllowed(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) return true;

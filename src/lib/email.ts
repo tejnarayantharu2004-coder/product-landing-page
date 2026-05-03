@@ -95,34 +95,55 @@ export function customerEmailHtml(order: OrderRecord) {
 export async function sendOrderEmails(order: OrderRecord) {
   const port = Number(env("SMTP_PORT"));
   const smtpPass = env("SMTP_PASS").replace(/\s/g, "");
-  const transporter = nodemailer.createTransport({
-    host: env("SMTP_HOST"),
-    port,
-    secure: port === 465,
-    auth: {
-      user: env("SMTP_USER"),
-      pass: smtpPass
-    }
-  });
-
+  const host = env("SMTP_HOST");
+  const user = env("SMTP_USER");
   const from = env("EMAIL_FROM");
   const businessEmail = env("BUSINESS_EMAIL");
   const brand = process.env.BRAND_NAME || "Braniva Oils";
 
-  await Promise.all([
-    transporter.sendMail({
+  const mailOptions = [
+    {
       from,
       to: businessEmail,
       replyTo: order.email,
       subject: `New Product Order Received - ${order.orderId}`,
       html: businessEmailHtml(order)
-    }),
-    transporter.sendMail({
+    },
+    {
       from,
       to: order.email,
       replyTo: from,
       subject: `Your Order Has Been Received - ${brand}`,
       html: customerEmailHtml(order)
-    })
-  ]);
+    }
+  ];
+
+  async function sendWithTransport(transportPort: number) {
+    const transporter = nodemailer.createTransport({
+      host,
+      port: transportPort,
+      secure: transportPort === 465,
+      connectionTimeout: 12000,
+      greetingTimeout: 12000,
+      socketTimeout: 20000,
+      auth: {
+        user,
+        pass: smtpPass
+      }
+    });
+
+    await Promise.all(mailOptions.map((options) => transporter.sendMail(options)));
+  }
+
+  try {
+    await sendWithTransport(port);
+  } catch (error) {
+    if (host.includes("gmail.com") && port === 465) {
+      console.warn("Gmail SMTP port 465 failed; retrying with port 587.", error);
+      await sendWithTransport(587);
+      return;
+    }
+
+    throw error;
+  }
 }
