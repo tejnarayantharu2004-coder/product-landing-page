@@ -52,8 +52,32 @@ export async function POST(request: NextRequest) {
 
     const order = createOrderRecord(parsed.data);
 
-    await appendOrderToSheet(order);
-    await sendOrderEmails(order);
+    try {
+      await appendOrderToSheet(order);
+    } catch (error) {
+      console.error("Google Sheets order save failed:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Order could not be saved to Google Spreadsheet. Please check Google Sheet environment variables and sharing permissions."
+        },
+        { status: 500 }
+      );
+    }
+
+    try {
+      await sendOrderEmails(order);
+    } catch (error) {
+      console.error("Order email notification failed:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Order was saved, but email notification failed. Please check Gmail SMTP environment variables and app password."
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true, order });
   } catch (error) {

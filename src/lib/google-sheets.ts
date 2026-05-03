@@ -25,6 +25,16 @@ function requiredEnv(name: string) {
   return value;
 }
 
+function normalizePrivateKey(value: string) {
+  let key = value.trim();
+
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1);
+  }
+
+  return key.replace(/\\n/g, "\n");
+}
+
 function quoteSheetName(name: string) {
   return `'${name.replace(/'/g, "''")}'`;
 }
@@ -85,7 +95,11 @@ async function ensureSheetReady(
   }
 
   if (typeof sheetId === "number") {
-    await formatOrderSheet(sheets, spreadsheetId, sheetId);
+    try {
+      await formatOrderSheet(sheets, spreadsheetId, sheetId);
+    } catch (error) {
+      console.warn("Google Sheet formatting skipped:", error);
+    }
   }
 
   return tabName;
@@ -282,7 +296,7 @@ async function formatOrderSheet(sheets: ReturnType<typeof google.sheets>, spread
 export async function appendOrderToSheet(order: OrderRecord) {
   const spreadsheetId = requiredEnv("GOOGLE_SHEET_ID");
   const clientEmail = requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
-  const privateKey = requiredEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n");
+  const privateKey = normalizePrivateKey(requiredEnv("GOOGLE_PRIVATE_KEY"));
   const tabName = process.env.GOOGLE_SHEET_TAB_NAME || "Braniva oils order";
 
   const auth = new google.auth.JWT({

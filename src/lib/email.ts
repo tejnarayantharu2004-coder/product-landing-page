@@ -94,13 +94,14 @@ export function customerEmailHtml(order: OrderRecord) {
 
 export async function sendOrderEmails(order: OrderRecord) {
   const port = Number(env("SMTP_PORT"));
+  const smtpPass = env("SMTP_PASS").replace(/\s/g, "");
   const transporter = nodemailer.createTransport({
     host: env("SMTP_HOST"),
     port,
     secure: port === 465,
     auth: {
       user: env("SMTP_USER"),
-      pass: env("SMTP_PASS")
+      pass: smtpPass
     }
   });
 
