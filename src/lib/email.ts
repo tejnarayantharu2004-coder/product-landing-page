@@ -9,6 +9,10 @@ function env(name: string) {
   return value;
 }
 
+function optionalEnv(name: string) {
+  return process.env[name]?.trim();
+}
+
 function currency(value: number) {
   return `NPR ${Number(value).toLocaleString("en-NP")}`;
 }
@@ -93,6 +97,12 @@ export function customerEmailHtml(order: OrderRecord) {
 }
 
 export async function sendOrderEmails(order: OrderRecord) {
+  const resendApiKey = optionalEnv("EMAIL_SERVICE_API_KEY");
+  if (resendApiKey) {
+    await sendWithResend(order, resendApiKey);
+    return;
+  }
+
   const port = Number(env("SMTP_PORT"));
   const smtpPass = env("SMTP_PASS").replace(/\s/g, "");
   const host = env("SMTP_HOST");
@@ -145,5 +155,46 @@ export async function sendOrderEmails(order: OrderRecord) {
     }
 
     throw error;
+  }
+}
+
+async function sendWithResend(order: OrderRecord, apiKey: string) {
+  const from = env("EMAIL_FROM");
+  const businessEmail = env("BUSINESS_EMAIL");
+  const brand = process.env.BRAND_NAME || "Braniva Oils";
+
+  const messages = [
+    {
+      from,
+      to: [businessEmail],
+      reply_to: order.email,
+      subject: `New Product Order Received - ${order.orderId}`,
+      html: businessEmailHtml(order)
+    },
+    {
+      from,
+      to: [order.email],
+      reply_to: from,
+      subject: `Your Order Has Been Received - ${brand}`,
+      html: customerEmailHtml(order)
+    }
+  ];
+
+  const results = await Promise.all(
+    messages.map((message) =>
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(message)
+      })
+    )
+  );
+
+  const failed = results.find((response) => !response.ok);
+  if (failed) {
+    throw new Error(`Resend email failed with status ${failed.status}`);
   }
 }

@@ -71,17 +71,15 @@ export async function POST(request: NextRequest) {
       await sendOrderEmails(order);
     } catch (error) {
       console.error("Order email notification failed:", error);
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Order was saved, but email notification failed. Please check Gmail SMTP environment variables and app password."
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        success: true,
+        order,
+        emailStatus: "failed",
+        warning: "Order was saved successfully, but email notification failed."
+      });
     }
 
-    return NextResponse.json({ success: true, order });
+    return NextResponse.json({ success: true, order, emailStatus: "sent" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Order submission failed.";
     console.error("Order submission failed:", error);
